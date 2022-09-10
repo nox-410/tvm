@@ -541,6 +541,8 @@ class StoragePlanRewriter : public StmtExprMutator {
     // This allows effective sharing among different types as long as their alignment
     // requirement fits into the max_simd_bits.
     uint64_t bits_offset{0};
+    // avoid enlarged to be reused
+    bool is_independent_alloc = false;
   };
 
   // Checks whether the storage_scope is especially tagged for a specific memory.
@@ -865,6 +867,10 @@ class StoragePlanRewriter : public StmtExprMutator {
       // In both cases, we need to handle the kill event correctly
       if (it != event_map_.end() && seq[i].scope_pair_offset <= 0) {
         for (const VarNode* var : it->second.kill) {
+          const auto f = runtime::Registry::Get("memopt.is_reuse_disabled");
+          if (f && (*f)(var->name_hint).operator bool())
+            continue;
+
           // skip space which are already replaced by inplace
           if (!inplace_flag.count(var)) {
             this->Free(var);
@@ -906,6 +912,13 @@ class StoragePlanRewriter : public StmtExprMutator {
     // more in-depth algorithms.
     bool is_flat_memory_space = (num_physical_dimensions == 1);
 
+    const auto f = runtime::Registry::Get("memopt.is_independent_alloc");
+    if (f && (*f)(op->buffer_var->name_hint).operator bool()) {
+      StorageEntry* e = NewAlloc(op, attach_scope, scope, const_nbits);
+      e->is_independent_alloc = true;
+      return e;
+    }
+
     // disable reuse of small arrays, they will be lowered to registers in LLVM
     // This rules only apply if we are using non special memory
     bool is_small_array =
@@ -936,6 +949,7 @@ class StoragePlanRewriter : public StmtExprMutator {
       for (auto it = mid; it != begin;) {
         --it;
         StorageEntry* e = it->second;
+        if (e->is_independent_alloc) continue;
         if (e->attach_scope_ != attach_scope) continue;
         if (e->scope != scope) continue;
         if (e->elem_type != op->dtype.element_of()) continue;
