@@ -135,7 +135,7 @@ class PopenWorker:
             # kill all child processes recursively
             try:
                 kill_child_processes(self._proc.pid)
-            except TypeError:
+            except Exception:
                 pass
             try:
                 self._proc.kill()
