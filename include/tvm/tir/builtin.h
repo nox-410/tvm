@@ -747,6 +747,17 @@ TVM_DLL const Op& assume();
  */
 TVM_DLL const Op& undef();
 
+
+/*!
+ * \brief Allocate and initialize a cutlass MMA class object
+ */
+TVM_DLL const Op& cutlass_init_fragment();
+
+/*!
+ * \brief Run the cutlass MMA class object for one step
+ */
+TVM_DLL const Op& cutlass_warp_mma();
+
 /*! \brief The kind of structure field info used in intrinsic */
 enum TVMStructFieldKind : int {
   // array head address
