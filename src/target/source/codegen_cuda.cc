@@ -960,6 +960,8 @@ void CodeGenCUDA::VisitStmt_(const AllocateNode* op) {
           << "Accumulator only support half, float and int type for now";
     }
     PrintWmmaScope(scope, op->dtype, buffer, stream);
+  } else if (scope == "cutlass.warp.mma") {
+    // skip the allocation here, allocate with init intrin
   } else {
     PrintStorageScope(scope, stream);
     PrintType(op->dtype, stream);
@@ -967,6 +969,8 @@ void CodeGenCUDA::VisitStmt_(const AllocateNode* op) {
 
   if (scope == "shared.dyn") {
     stream << ' ' << vid << "[];\n";
+  } else if (scope.find("cutlass.warp.mma") == 0) {
+    // skip the allocation here, allocate with init intrin
   } else {
     size_t constant_size = op->ConstantAllocationSize();
     ICHECK_GT(constant_size, 0) << "Can only handle constant size stack allocation for now";
@@ -985,6 +989,20 @@ void CodeGenCUDA::VisitStmt_(const AllocateNode* op) {
   RegisterHandleType(op->buffer_var.get(), op->dtype);
   this->PrintStmt(op->body);
 }
+
+void CodeGenCUDA::VisitExpr_(const BufferLoadNode* op, std::ostream& os) {
+  auto buffer_var = op->buffer->data;
+  if (GetPtrStorageScope(buffer_var) == "cutlass.warp.mma") {
+    // String vid = var_idmap_[buffer_var.get()];
+    // auto indice = op->indices[0];
+    // var_idmap_[buffer_var.get()] = vid + "[0]";
+    CodeGenC::VisitExpr_(op, os);
+    // var_idmap_[buffer_var.get()] = vid;
+  } else {
+    CodeGenC::VisitExpr_(op, os);
+  }
+}
+
 
 void CodeGenCUDA::VisitStmt_(const EvaluateNode* op) {
   if (is_const_int(op->value)) return;
