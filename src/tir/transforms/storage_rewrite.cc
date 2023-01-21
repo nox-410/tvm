@@ -1062,6 +1062,10 @@ struct BufferVarInfo {
     if (base_access_dtype.size() != 1) {
       return element_dtype;
     }
+    // Avoid type change
+    if (GetPtrStorageScope(var) == "cutlass.warp.mma") {
+      return element_dtype;
+    }
 
     DataType preferred_base_type = *base_access_dtype.begin();
 

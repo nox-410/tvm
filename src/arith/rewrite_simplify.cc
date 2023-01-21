@@ -1089,6 +1089,12 @@ PrimExpr RewriteSimplifier::Impl::VisitExpr_(const MinNode* op) {
     if (b_bound->max_value <= a_bound->min_value) {
       return op->b;
     }
+    if (CanProveGreaterEqual(analyzer_->canonical_simplify(op->b - op->a), 0)) {
+      return op->a;
+    }
+    if (CanProveGreaterEqual(analyzer_->canonical_simplify(op->a - op->b), 0)) {
+      return op->b;
+    }
 
     // constant comparison
     if (min(x + c1, x + c2).Match(ret)) {

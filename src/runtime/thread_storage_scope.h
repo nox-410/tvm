@@ -64,6 +64,8 @@ enum class StorageRank {
   kTexture = 7,
   /*! \brief global scope amx tmm memory */
   kAMXTMM = 8,
+  /*! \brief cutlass warp mma fragments */
+  kCutlassWarpMMA = 9,
 };
 
 /*!
@@ -114,6 +116,8 @@ struct StorageScope {
         return "wmma.accumulator" + tag;
       case StorageRank::kTexture:
         return "texture" + tag;
+      case StorageRank::kCutlassWarpMMA:
+        return "cutlassWarpMMA" + tag;
       default:
         LOG(FATAL) << "unknown storage scope";
     }
@@ -154,6 +158,9 @@ struct StorageScope {
     } else if (s.compare(0, 7, "amx.tmm") == 0) {
       r.rank = StorageRank::kAMXTMM;
       r.tag = s.substr(7, std::string::npos);
+    } else if (s.compare(0, 16, "cutlass.warp.mma") == 0) {
+      r.rank = StorageRank::kCutlassWarpMMA;
+      r.tag = s.substr(16, std::string::npos);
     } else {
       LOG(FATAL) << "unknown storage scope " << s;
     }
