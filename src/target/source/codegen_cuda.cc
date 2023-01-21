@@ -903,6 +903,33 @@ void CodeGenCUDA::VisitExpr_(const CallNode* op, std::ostream& os) {
   } else if (op->op.same_as(builtin::ptx_wait_group())) {
     std::string N = this->PrintExpr(op->args[0]);
     this->stream << "__asm__ __volatile__(\"cp.async.wait_group " + N + ";\");\n\n";
+  } else if (op->op.same_as(builtin::cutlass_init_fragment())) {
+    const auto cls_name = op->args[1].as<StringImmNode>()->value;
+    os << cls_name << " ";
+    this->PrintExpr(op->args[0], os);
+    os << "(";
+    this->PrintExpr(op->args[2], os); // warp_idx_m
+    os << ", ";
+    this->PrintExpr(op->args[3], os); // warp_idx_n
+    os << ", threadIdx.x)";
+  } else if (op->op.same_as(builtin::cutlass_warp_mma())) {
+    this->PrintExpr(op->args[0], os);
+    const auto action = op->args[1].as<StringImmNode>()->value;
+    os << "." << action;
+    if (action == "prologue") {
+      os << "({(cutlass::half_t*)";
+      this->PrintExpr(op->args[2], os);
+      os << ", ";
+      this->PrintExpr(op->args[3], os);
+      os << "},";
+      os << "{(cutlass::half_t*)";
+      this->PrintExpr(op->args[4], os);
+      os << ", ";
+      this->PrintExpr(op->args[5], os);
+      os << "})";
+    } else if (action == "body" || action == "epilogue") {
+      os << "()";
+    }
   } else {
     CodeGenC::VisitExpr_(op, os);
   }
@@ -960,6 +987,8 @@ void CodeGenCUDA::VisitStmt_(const AllocateNode* op) {
           << "Accumulator only support half, float and int type for now";
     }
     PrintWmmaScope(scope, op->dtype, buffer, stream);
+  } else if (scope == "cutlass.warp.mma") {
+    // skip the allocation here, allocate with init intrin
   } else {
     PrintStorageScope(scope, stream);
     PrintType(op->dtype, stream);
@@ -967,6 +996,8 @@ void CodeGenCUDA::VisitStmt_(const AllocateNode* op) {
 
   if (scope == "shared.dyn") {
     stream << ' ' << vid << "[];\n";
+  } else if (scope.find("cutlass.warp.mma") == 0) {
+    // skip the allocation here, allocate with init intrin
   } else {
     size_t constant_size = op->ConstantAllocationSize();
     ICHECK_GT(constant_size, 0) << "Can only handle constant size stack allocation for now";
@@ -985,6 +1016,20 @@ void CodeGenCUDA::VisitStmt_(const AllocateNode* op) {
   RegisterHandleType(op->buffer_var.get(), op->dtype);
   this->PrintStmt(op->body);
 }
+
+void CodeGenCUDA::VisitExpr_(const BufferLoadNode* op, std::ostream& os) {
+  auto buffer_var = op->buffer->data;
+  if (GetPtrStorageScope(buffer_var) == "cutlass.warp.mma") {
+    // String vid = var_idmap_[buffer_var.get()];
+    // auto indice = op->indices[0];
+    // var_idmap_[buffer_var.get()] = vid + "[0]";
+    CodeGenC::VisitExpr_(op, os);
+    // var_idmap_[buffer_var.get()] = vid;
+  } else {
+    CodeGenC::VisitExpr_(op, os);
+  }
+}
+
 
 void CodeGenCUDA::VisitStmt_(const EvaluateNode* op) {
   if (is_const_int(op->value)) return;
