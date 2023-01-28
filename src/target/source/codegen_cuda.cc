@@ -905,23 +905,25 @@ void CodeGenCUDA::VisitExpr_(const CallNode* op, std::ostream& os) {
     this->stream << "__asm__ __volatile__(\"cp.async.wait_group " + N + ";\");\n\n";
   } else if (op->op.same_as(builtin::cutlass_init_fragment())) {
     const auto cls_name = op->args[1].as<StringImmNode>()->value;
-    const auto buffer_A_name = op->args[2].as<StringImmNode>()->value;
-    const auto buffer_B_name = op->args[3].as<StringImmNode>()->value;
     os << cls_name << " ";
     this->PrintExpr(op->args[0], os);
-    os << "({(cutlass::half_t*)" << buffer_A_name << ", ";
-    this->PrintExpr(op->args[4], os); // stride A
-    os << "},";
-    os << "{(cutlass::half_t*)" << buffer_B_name << ", ";
-    this->PrintExpr(op->args[5], os); // stride B
-    os << "}, ";
-    this->PrintExpr(op->args[6], os); // warp_idx_m
+    os << "(";
+    this->PrintExpr(op->args[2], os); // warp_idx_m
     os << ", ";
-    this->PrintExpr(op->args[7], os); // warp_idx_n
+    this->PrintExpr(op->args[3], os); // warp_idx_n
     os << ", threadIdx.x)";
   } else if (op->op.same_as(builtin::cutlass_warp_mma())) {
     this->PrintExpr(op->args[0], os);
-    os << "()";
+    os << "({(cutlass::half_t*)";
+    this->PrintExpr(op->args[1], os);
+    os << ", ";
+    this->PrintExpr(op->args[2], os);
+    os << "},";
+    os << "{(cutlass::half_t*)";
+    this->PrintExpr(op->args[3], os);
+    os << ", ";
+    this->PrintExpr(op->args[4], os);
+    os << "})";
   } else {
     CodeGenC::VisitExpr_(op, os);
   }
