@@ -262,7 +262,10 @@ TVM_REGISTER_GLOBAL("tir.schedule.ScheduleSetAxisSeparator")
       return self->SetAxisSeparator(
           block_rv, buffer_index, static_cast<BufferIndexType>(buffer_index_type), axis_separators);
     });
-
+TVM_REGISTER_GLOBAL("tir.schedule.ScheduleTransformLoop")
+     .set_body_typed([](Schedule self, const BlockRV& block_rv, int ndim, const IndexMap& index_map) {
+      tir::TransformLoop(self->state(), self->GetSRef(block_rv), ndim, index_map);
+    });
 /******** (FFI) Padding decomposition ********/
 TVM_REGISTER_GLOBAL("tir.schedule.ScheduleDecomposePadding")
     .set_body_method<Schedule>(&ScheduleNode::DecomposePadding);

@@ -492,6 +492,9 @@ TVM_DLL void TransformLayout(ScheduleState self, const StmtSRef& block_sref, int
 TVM_DLL void TransformBlockLayout(ScheduleState self, const StmtSRef& block_sref,
                                   const IndexMap& index_map);
 
+TVM_DLL void TransformLoop(ScheduleState self, const StmtSRef& block_sref, int ndim,
+                                  const IndexMap& index_map);
+
 /******** Schedule: Padding ********/
 /*!
  * \brief Decompose a padding block into a block filling const pad values and a block
