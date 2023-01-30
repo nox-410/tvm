@@ -3399,6 +3399,20 @@ class Schedule(Object):
             self, block, buffer_index, buffer_index_type_enum, axis_separators
         )
 
+    @type_checked
+    def transform_loop(
+        self,
+        block: BlockRV,
+        ndim: int,
+        index_map: Union[IndexMap, Callable],
+    ) -> None:
+        block = self._normalize_block_arg(block)
+        if callable(index_map):
+            index_map = IndexMap.from_func(index_map)
+        _ffi_api.ScheduleTransformLoop(  # type: ignore # pylint: disable=no-member
+            self, block, ndim, index_map
+        )
+
     ########## Schedule: Padding decomposition #########
     @type_checked
     def decompose_padding(self, block: Union[BlockRV, str], loop: LoopRV) -> BlockRV:
