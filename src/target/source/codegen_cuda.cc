@@ -914,16 +914,22 @@ void CodeGenCUDA::VisitExpr_(const CallNode* op, std::ostream& os) {
     os << ", threadIdx.x)";
   } else if (op->op.same_as(builtin::cutlass_warp_mma())) {
     this->PrintExpr(op->args[0], os);
-    os << "({(cutlass::half_t*)";
-    this->PrintExpr(op->args[1], os);
-    os << ", ";
-    this->PrintExpr(op->args[2], os);
-    os << "},";
-    os << "{(cutlass::half_t*)";
-    this->PrintExpr(op->args[3], os);
-    os << ", ";
-    this->PrintExpr(op->args[4], os);
-    os << "})";
+    const auto action = op->args[1].as<StringImmNode>()->value;
+    os << "." << action;
+    if (action == "prologue") {
+      os << "({(cutlass::half_t*)";
+      this->PrintExpr(op->args[2], os);
+      os << ", ";
+      this->PrintExpr(op->args[3], os);
+      os << "},";
+      os << "{(cutlass::half_t*)";
+      this->PrintExpr(op->args[4], os);
+      os << ", ";
+      this->PrintExpr(op->args[5], os);
+      os << "})";
+    } else if (action == "body" || action == "epilogue") {
+      os << "()";
+    }
   } else {
     CodeGenC::VisitExpr_(op, os);
   }
