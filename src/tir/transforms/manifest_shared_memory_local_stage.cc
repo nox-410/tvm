@@ -85,7 +85,8 @@ class IntermediateStageRewriter {
       const Stmt& ancestor = ancestor_loop_or_blocks_[i];
       if (const ForNode* ancestor_loop = ancestor.as<ForNode>()) {
         CHECK(ancestor_loop->kind == ForKind::kSerial ||
-              ancestor_loop->kind == ForKind::kVectorized)
+              ancestor_loop->kind == ForKind::kVectorized ||
+              ancestor_loop->kind == ForKind::kUnrolled)
             << "ValueError: Expect the ancestor loops to be serial or vectorized, got "
             << ancestor_loop->kind;
         relaxed_loops.push_back(ancestor.as<ForNode>());
