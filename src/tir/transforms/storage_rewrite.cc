@@ -938,7 +938,7 @@ class StoragePlanRewriter : public StmtExprMutator {
     ICHECK(op != nullptr);
     // skip plan for local variable,
     // compiler can do a better job with register allocation.
-    const uint64_t match_range = 16;
+    const uint64_t match_range = 1600;
     uint64_t op_elem_bits = op->dtype.bits() * op->dtype.lanes();
     uint64_t const_nbits = static_cast<uint64_t>(op->ConstantAllocationSize() * op_elem_bits);
 
