@@ -67,6 +67,10 @@ TVM_REGISTER_GLOBAL("te.Placeholder")
       return placeholder(shape, dtype, name);
     });
 
+TVM_REGISTER_GLOBAL("te.PlaceholderOp").set_body_typed([](std::string name, Array<PrimExpr> shape, DataType dtype) {
+    return PlaceholderOp(name, shape, dtype);
+});
+
 Array<Tensor> PlaceholderOpNode::InputTensors() const { return {}; }
 
 Operation PlaceholderOpNode::ReplaceInputs(const Operation& self,
