@@ -181,6 +181,18 @@ TVM_REGISTER_GLOBAL("te.OpGetOutput").set_body_typed([](Operation op, int64_t ou
   return op.output(static_cast<size_t>(output));
 });
 
+TVM_REGISTER_GLOBAL("te.TensorReplaceOp").set_body_typed(
+  [](Tensor tensor, Operation op) {
+      return Tensor(tensor->shape, tensor->dtype, op, tensor->value_index);
+});
+
+TVM_REGISTER_GLOBAL("te.OpReplaceInputs").set_body_typed(
+  [](Operation op, const Map<Tensor, Tensor>& rmap) {
+      std::unordered_map<Tensor, Tensor> rmap2;
+      for (auto &item: rmap) rmap2.insert(item);
+      return op->ReplaceInputs(op, rmap2);
+});
+
 TVM_REGISTER_GLOBAL("te.OpNumOutputs").set_body_method<Operation>(&OperationNode::num_outputs);
 
 TVM_REGISTER_GLOBAL("te.OpInputTensors").set_body_method<Operation>(&OperationNode::InputTensors);
