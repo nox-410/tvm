@@ -315,6 +315,20 @@ PrimExpr RewriteSimplifier::Impl::VisitExpr_(const AddNode* op) {
     TVM_TRY_REWRITE_IF(floormod(x, 2) + floormod(x + c1, 2), OneWithTypeLike(x),
                        floormod(c1.Eval()->value, 2) == 1);
 
+    // Try to handle this case (flattened buffer with shape 128x4x9 accessed by 128 threads):
+    //        (x + 128) // 36 * 36 + (x + 128) % 36 // 9 * 9 + (x + 128) % 9
+    // after canonical simplify:
+    //        (x + 128) // 36 * 36 + (x + 20) % 36 // 9 * 9 + (x + 2) % 9
+    // after rewrite simplify:
+    //        x + 128
+    TVM_TRY_REWRITE_IF(floordiv(floormod(x, c2), c1) * c1 + floormod(y, c1), floormod(x, c2),
+                       CanProveEqual(floormod(x - y, c1).Eval(), 0) && c2.Eval()->value % c1.Eval()->value == 0);
+    TVM_TRY_REWRITE_IF(floordiv(x, c1) * c1 + floormod(y, c1), x,
+                       CanProveEqual(floormod(x - y, c1).Eval(), 0));
+    TVM_TRY_REWRITE_IF(z + floordiv(floormod(x, c2), c1) * c1 + floormod(y, c1), z + floormod(x, c2),
+                       CanProveEqual(floormod(x - y, c1).Eval(), 0) && c2.Eval()->value % c1.Eval()->value == 0);
+    TVM_TRY_REWRITE_IF(z + floordiv(x, c1) * c1 + floormod(y, c1), z + x,
+                       CanProveEqual(floormod(x - y, c1).Eval(), 0));
     // canonicalization rule
     // will try rewrite again after canonicalization.
 
