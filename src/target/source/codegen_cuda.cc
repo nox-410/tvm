@@ -935,6 +935,12 @@ void CodeGenCUDA::VisitExpr_(const CallNode* op, std::ostream& os) {
       os << "})";
     } else if (action == "body" || action == "epilogue") {
       os << "()";
+    } else if (action == "Run") {
+      os << "(";
+      this->PrintExpr(op->args[2], os);
+      os << ", ";
+      this->PrintExpr(op->args[3], os);
+      os << ")";
     }
   } else {
     CodeGenC::VisitExpr_(op, os);
