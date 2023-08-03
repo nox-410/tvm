@@ -25,7 +25,7 @@ from typing import Optional
 import numpy as np
 import tvm
 from tvm import relay
-from tvm.ir import IRModule
+from tvm.ir import IRModule, make_node
 from tvm.topi.utils import get_const_tuple
 
 from ... import nd as _nd
@@ -68,6 +68,7 @@ ONNX_DEFAULT_CONFIGS = {
     # Note that `nn.batch_matmul` with format other than NT is in experimental, it may have some
     # performance issues.
     "use_nt_batch_matmul": True,
+    "use_welder_matmul": False
 }
 
 
@@ -249,7 +250,9 @@ def matmul_out_dtype(inputs, out_dtype):
     b_shape = shape_of(inputs[1])
     b_rank = infer_shape(b_shape)[0]
     if a_rank > 2 or b_rank > 2:
-
+        if ONNX_DEFAULT_CONFIGS["use_welder_matmul"]:
+            return relay.Call(_op.get("welder.matmul"), inputs, make_node(
+                            "DictAttrs", out_dtype=out_dtype, transpose_a=False, transpose_b=False))
         def flatten_to_nd(x, x_shape, nd=3):
             ndims = infer_shape(x_shape)[0]
             if ndims == nd:
@@ -361,9 +364,11 @@ def matmul_out_dtype(inputs, out_dtype):
         return _op.squeeze(_op.nn.matmul(_op.expand_dims(inputs[0], axis=0), inputs[1]), axis=[0])
 
     # Otherwise a simple dense op will get the job done.
-    input_1_t = _op.transpose(inputs[1], axes=(1, 0))
-    return _op.nn.dense(inputs[0], input_1_t, out_dtype=out_dtype)
-
+    if ONNX_DEFAULT_CONFIGS["use_welder_matmul"]:
+        _op.nn.matmul(inputs[0], inputs[1], out_dtype=out_dtype)
+    else:
+        input_1_t = _op.transpose(inputs[1], axes=(1, 0))
+        return _op.nn.dense(inputs[0], input_1_t, out_dtype=out_dtype)
 
 def layer_norm(x, eps, gamma, beta):
     """Common function to handle layer norm"""
