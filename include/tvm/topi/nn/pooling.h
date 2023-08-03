@@ -348,7 +348,7 @@ inline Tensor adaptive_pool_impl(const Tensor& x, const Array<PrimExpr>& output_
       auto i_start = start_index(output[axes[i]], out_size[i], in_size[i]);
       auto i_end = end_index(output[axes[i]], out_size[i], in_size[i]);
       auto rv_name = "rv" + std::to_string(i);
-      auto rv_axis = tvm::te::reduce_axis(Range(0, i_end - i_start), rv_name);
+      auto rv_axis = tvm::te::reduce_axis(Range(0, arith::Analyzer().Simplify(i_end - i_start)), rv_name);
       reduce_axes.push_back(rv_axis);
       if (reduce_indices) {
         indices.Set(axes[i], i_start + rv_axis);
