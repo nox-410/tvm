@@ -163,7 +163,7 @@ PrimExpr Analyzer::Simplify(const PrimExpr& expr, int steps) {
 
   // Always starts with a canonical simplification, as some structural property
   // of an expression might be destroyed by rewrite simplification.
-  res = this->canonical_simplify(res);
+  // res = this->canonical_simplify(res);
 
   for (int i = 0; i < steps; ++i) {
     if (tir::is_const_int(res)) {
