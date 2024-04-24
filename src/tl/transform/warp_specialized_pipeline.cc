@@ -621,7 +621,8 @@ class WSCodeEmitter : public StmtMutator {
     // inject before the first consumer stmt for each producer
     for (int i = 0; i < n; i++) {
       for (int j = i + 1; j < n; j++) {
-        if (is_producer[i] && !is_producer[j] && intersect_fn(writes[i], reads[j])) {
+        if (is_producer[i] != is_producer[j] &&
+            (intersect_fn(writes[i], reads[j]) || intersect_fn(reads[i], writes[j]))) {
           sync_patterns.push_back({i, j});
           break;
         }
@@ -635,7 +636,8 @@ class WSCodeEmitter : public StmtMutator {
     if (in_loop) {
       for (int i = 0; i < n; i++) {
         for (int j = 0; j < i; j++) {
-          if (!is_producer[i] && is_producer[j] && intersect_fn(reads[i], writes[j])) {
+          if (is_producer[i] != is_producer[j] &&
+              (intersect_fn(writes[i], reads[j]) || intersect_fn(reads[i], writes[j]))) {
             sync_patterns.push_back({i, j});
             break;
           }
