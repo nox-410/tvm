@@ -341,7 +341,8 @@ list(APPEND COMPILER_SRCS ${DATATYPE_SRCS})
 list(APPEND COMPILER_SRCS "src/target/datatype/myfloat/myfloat.cc")
 
 tvm_file_glob(GLOB TILE_LIBRARY_SRCS 
-    src/tl/*.cc 
+    src/tl/*.cc
+    src/tl/cost_model/*.cc
     src/tl/layout/*.cc
     src/tl/target/*.cc 
     src/tl/transform/*.cc

@@ -264,8 +264,9 @@ Stmt Copy::LowerLDSMCopy(const LowerArgs& T, arith::Analyzer* analyzer) const {
                       warp + FloorDiv(FloorMod(T.thread_var, 8), 2)});
   shared_coords.pop_back();  // remove rep
   if (shared_layout.defined()) shared_coords = shared_layout->Forward(shared_coords);
-  PrimExpr shared_addr = shared_tensor.access_ptr(
-      is_ldmatrix ? 1 : 2, DataType::Handle(), 1, shared_tensor.OffsetOf(shared_coords).back(), PrimExpr(2 * num));
+  PrimExpr shared_addr =
+      shared_tensor.access_ptr(is_ldmatrix ? 1 : 2, DataType::Handle(), 1,
+                               shared_tensor.OffsetOf(shared_coords).back(), PrimExpr(2 * num));
   args.push_back(shared_addr);
 
   if (is_ldmatrix) {
@@ -300,6 +301,11 @@ LayoutMap Copy::InferLayout(const LayoutInferArgs& T, InferLevel level) {
     par_op_ = std::make_unique<ParallelOp>(MakeSIMTLoop(&analyzer));
   }
   return par_op_->InferLayout(T, level);
+}
+
+OpCost Copy::GetOpCost(const Target& target, size_t block_size, arith::Analyzer* analyzer) const {
+  auto par_op = std::make_unique<ParallelOp>(MakeSIMTLoop(analyzer));
+  return par_op->GetOpCost(target, block_size, analyzer);
 }
 
 Fill::Fill(Array<PrimExpr> args, BufferMap vmap) {
@@ -341,6 +347,11 @@ Stmt Fill::Lower(const LowerArgs& T, arith::Analyzer* analyzer) const {
     return vectorized_thread_loop;
   }
   return vectorized_thread_loop;
+}
+
+OpCost Fill::GetOpCost(const Target& target, size_t block_size, arith::Analyzer* analyzer) const {
+  auto par_op = std::make_unique<ParallelOp>(MakeSIMTLoop(analyzer));
+  return par_op->GetOpCost(target, block_size, analyzer);
 }
 
 TIR_REGISTER_TL_OP(Copy, copy)

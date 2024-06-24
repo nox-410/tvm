@@ -79,6 +79,8 @@ def lower(func):
     target = tvm.target.Target("cuda", target_host)
     mod = tir.transform.BindTarget(target)(mod)
 
+    tl.cost_model.tile_costmodel(mod["main"])
+
     mod = tl.transform.FrontendLegalize()(mod)
     mod = tir.transform.Simplify()(mod)
     mod = tl.transform.LayoutInference()(mod)
@@ -98,7 +100,7 @@ def lower(func):
     mod = tir.transform.Simplify()(mod)
 
     mod = tir.transform.VectorizeLoop()(mod)
-    mod = tir.transform.StorageRewrite()(mod)
+    # mod = tir.transform.StorageRewrite()(mod)
     mod = tir.transform.UnrollLoop()(mod)
     mod = tir.transform.RenormalizeSplitPattern()(mod)
     mod = tir.transform.Simplify()(mod)

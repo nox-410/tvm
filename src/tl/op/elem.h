@@ -39,7 +39,7 @@ class Copy : public Operator {
   Copy(Array<PrimExpr> args, BufferMap vmap);
   Stmt Lower(const LowerArgs& T, arith::Analyzer* analyzer) const final;
   LayoutMap InferLayout(const LayoutInferArgs& T, InferLevel level) final;
-
+  OpCost GetOpCost(const Target& target, size_t block_size, arith::Analyzer* analyzer) const final;
   static const Op& Get();
 
  protected:
@@ -68,6 +68,7 @@ class Fill : public Operator {
  public:
   Fill(Array<PrimExpr> args, BufferMap vmap);
   Stmt Lower(const LowerArgs& T, arith::Analyzer* analyzer) const final;
+  OpCost GetOpCost(const Target& target, size_t block_size, arith::Analyzer* analyzer) const final;
   static const Op& Get();
 
  private:

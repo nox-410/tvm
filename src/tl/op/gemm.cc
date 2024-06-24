@@ -199,6 +199,19 @@ LayoutMap Gemm::InferLayout(const LayoutInferArgs& T, InferLevel level) {
   return results;
 }
 
+OpCost Gemm::GetOpCost(const Target& target, size_t block_size, arith::Analyzer* analyzer) const {
+  OpCost cost;
+  auto [warp_m, warp_n] = ComputeWarpPartition(block_size / 32, target);
+  if (A.scope() == "shared" || A.scope() == "shared.dyn") {
+    cost.update(OpCost::kSmemAccess, M * K * warp_n * A->dtype.bytes());
+  }
+  if (B.scope() == "shared" || B.scope() == "shared.dyn") {
+    cost.update(OpCost::kSmemAccess, N * K * warp_n * B->dtype.bytes());
+  }
+  cost.update(OpCost::kFp16TensorCore, M * N * K * 2);
+  return cost;
+}
+
 TIR_REGISTER_TL_OP(Gemm, gemm)
     .set_num_inputs(5)
     .set_attr<TCallEffectKind>("TCallEffectKind", Integer(CallEffectKind::kOpaque));

@@ -98,5 +98,36 @@ Stmt Operator::Canonialize(const CanonializeArgs& T, arith::Analyzer* analyzer) 
 
 LayoutMap Operator::InferLayout(const LayoutInferArgs& T, InferLevel level) { return {}; }
 
+OpCost Operator::GetOpCost(const Target& target, size_t block_size,
+                           arith::Analyzer* analyzer) const {
+  return {};
+}
+
+OpCost::OpCost() {
+  for (int i = 0; i < OpCost::kOpCostFieldMax; i++) {
+    data[i] = 0;
+  }
+}
+
+int64_t OpCost::get(OpCostField field) const { return data[field]; }
+
+void OpCost::update(OpCostField field, int64_t value) { data[field] += value; }
+
+OpCost OpCost::operator+(const OpCost& rhs) const {
+  OpCost cost;
+  for (int i = 0; i < OpCost::kOpCostFieldMax; i++) {
+    cost.data[i] = data[i] + rhs.data[i];
+  }
+  return cost;
+}
+
+OpCost OpCost::operator*(int64_t repeats) const {
+  OpCost cost;
+  for (int i = 0; i < OpCost::kOpCostFieldMax; i++) {
+    cost.data[i] = data[i] * repeats;
+  }
+  return cost;
+}
+
 }  // namespace tl
 }  // namespace tvm

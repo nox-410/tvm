@@ -186,5 +186,50 @@ Fragment ParallelOp::CompleteBufferFragment(const Buffer& buffer) {
       ->CondenseReplicateVar();
 }
 
+class ParallelOpCostVisitor : public StmtExprVisitor {
+ public:
+  OpCost GetCost() { return cost_; }
+
+ private:
+  void VisitStmt_(const ForNode* op) final {
+    auto old_loop_extent = loop_extent_;
+    auto extent_ptr = as_const_int(op->extent);
+    ICHECK(extent_ptr);
+    loop_extent_ *= *extent_ptr;
+    StmtExprVisitor::VisitStmt_(op);
+    loop_extent_ = old_loop_extent;
+  }
+
+  void VisitStmt_(const BufferStoreNode* op) final {
+    int64_t mem_workload = loop_extent_ * op->buffer->dtype.bytes();
+    if (op->buffer.scope() == "global") {
+      cost_.update(OpCost::kGmemAccess, mem_workload);
+    } else if (op->buffer.scope() == "shared" || op->buffer.scope() == "shared.dyn") {
+      cost_.update(OpCost::kGmemAccess, mem_workload);
+    }
+    StmtExprVisitor::VisitStmt_(op);
+  }
+
+  void VisitExpr_(const BufferLoadNode* op) final {
+    int64_t mem_workload = loop_extent_ * op->buffer->dtype.bytes();
+    if (op->buffer.scope() == "global") {
+      cost_.update(OpCost::kGmemAccess, mem_workload);
+    } else if (op->buffer.scope() == "shared" || op->buffer.scope() == "shared.dyn") {
+      cost_.update(OpCost::kGmemAccess, mem_workload);
+    }
+    StmtExprVisitor::VisitExpr_(op);
+  }
+
+  int64_t loop_extent_ = 1;
+  OpCost cost_;
+};
+
+OpCost ParallelOp::GetOpCost(const Target& target, size_t block_size,
+                             arith::Analyzer* analyzer) const {
+  ParallelOpCostVisitor visitor;
+  visitor(root_);
+  return visitor.GetCost();
+}
+
 }  // namespace tl
 }  // namespace tvm

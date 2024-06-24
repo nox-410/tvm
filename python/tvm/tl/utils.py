@@ -147,6 +147,18 @@ class Profiler(ConvertTorch):
         ins = self._get_inputs()
         return self.__call__(*ins)
 
+    def run_cuda_profile(self):
+        import ctypes
+
+        lib_cudart = ctypes.CDLL("libcudart.so")
+
+        ins = self._get_inputs()
+        lib_cudart.cudaProfilerStart()
+        result = self.__call__(*ins)
+        lib_cudart.cudaProfilerStop()
+
+        return result
+
     def do_bench(self, func: callable, warmup=25, rep=100):
         ins = self._get_inputs()
         bench_func = partial(func, *ins)

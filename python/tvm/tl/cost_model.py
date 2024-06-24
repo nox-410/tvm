@@ -14,8 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Cost Models."""
+# pylint: disable=invalid-name, unsupported-binary-operation
 
-from . import transform
-from .engine import lower
-from .utils import Profiler, ConvertTorch, TensorSupplyType, cached
-from . import cost_model
+from . import _ffi_api
+import tvm
+
+
+def tile_costmodel(f: tvm.tir.PrimFunc):
+    return _ffi_api.inst_cnt(f)

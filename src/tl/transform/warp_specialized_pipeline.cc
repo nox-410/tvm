@@ -29,6 +29,7 @@
 #include <tvm/tir/transform.h>
 
 #include "../op/builtin.h"
+#include "../op/elem.h"
 
 namespace tvm {
 namespace tl {
@@ -56,6 +57,15 @@ class WarpSpecializedRoleMarker : public StmtVisitor {
       if (call->op.same_as(TMALoadOp()) || call->op.same_as(TMALoadIm2ColOp())) {
         role = Role::kProducer;
         has_bulk_copy_ = true;
+      } else {
+        Block block(/*iter_vars=*/{}, /*reads=*/{}, /*writes=*/{}, /*name_hint=*/"",
+                    /*body*/ GetRef<Stmt>(op));
+        auto access = GetBlockReadWriteRegion(block, buffer_data_to_buffer_);
+        auto reads = access[0], writes = access[1];
+        if (reads.size() == 1 && reads[0]->buffer.scope() == "global" && writes.size() == 1 &&
+            (writes[0]->buffer.scope() == "shared.dyn" || writes[0]->buffer.scope() == "shared")) {
+          role = Role::kProducer;
+        }
       }
     }
     SetRole(op, role);
@@ -237,6 +247,19 @@ class MultiVersionBufferRewriter : public StmtExprMutator {
     }
     f.CopyOnWrite()->body = rewriter(f->body);
     return f;
+  }
+
+  static Array<Buffer> GetPipelinedBuffers(PrimFunc& f) {
+    auto rewriter = MultiVersionBufferRewriter();
+    rewriter.buffer_lca_ = DetectBufferAccessLCA(f);
+    for (auto [buffer, _] : rewriter.buffer_lca_) {
+      Var buffer_var = buffer->data;
+      rewriter.buffer_data_to_buffer_.Set(buffer_var, buffer);
+    }
+    rewriter(f->body);
+    Array<Buffer> results;
+    for (auto [buffer, _] : rewriter.buffer_remap_) results.push_back(buffer);
+    return results;
   }
 
  private:
@@ -837,6 +860,10 @@ tvm::transform::Pass WarpSpecializedPipeline() {
 }
 
 TVM_REGISTER_GLOBAL("tl.WarpSpecializedPipeline").set_body_typed(WarpSpecializedPipeline);
+
+Array<Buffer> DetectPipelinedBuffers(PrimFunc f) {
+  return MultiVersionBufferRewriter::GetPipelinedBuffers(f);
+}
 
 }  // namespace tl
 }  // namespace tvm

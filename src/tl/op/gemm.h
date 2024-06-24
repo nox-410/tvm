@@ -38,6 +38,7 @@ class Gemm : public Operator {
   Gemm(Array<PrimExpr> args, BufferMap vmap);
   Stmt Lower(const LowerArgs& T, arith::Analyzer* analyzer) const final;
   LayoutMap InferLayout(const LayoutInferArgs& T, InferLevel level) final;
+  OpCost GetOpCost(const Target& target, size_t block_size, arith::Analyzer* analyzer) const final;
   static const Op& Get();
   enum class GemmWarpPolicy {
     kSquare = 0,

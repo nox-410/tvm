@@ -78,11 +78,34 @@ struct CanonializeArgs {
   Target target;
 };
 
+class OpCost {
+ public:
+  enum OpCostField {
+    kGmemAccess = 0,
+    kSmemAccess,
+    kFp16TensorCore,
+    kFloatSIMT,
+    kIntSIMT,
+    kOpCostFieldMax
+  };
+
+  OpCost();
+  OpCost operator+(const OpCost& rhs) const;
+  OpCost operator*(int64_t repeats) const;
+  int64_t get(OpCostField field) const;
+  void update(OpCostField field, int64_t value);
+
+ private:
+  int64_t data[kOpCostFieldMax];
+};
+
 class Operator {
  public:
   virtual Stmt Lower(const LowerArgs& T, arith::Analyzer* analyzer) const;
   virtual Stmt Canonialize(const CanonializeArgs& T, arith::Analyzer* analyzer) const;
   virtual LayoutMap InferLayout(const LayoutInferArgs& T, InferLevel level);
+  virtual OpCost GetOpCost(const Target& target, size_t block_size,
+                           arith::Analyzer* analyzer) const;
   virtual ~Operator() = default;
 };
 

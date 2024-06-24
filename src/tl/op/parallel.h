@@ -54,6 +54,7 @@ class ParallelOp : public Operator {
  public:
   ParallelOp(For root);
   LayoutMap InferLayout(const LayoutInferArgs& T, InferLevel level) final;
+  OpCost GetOpCost(const Target& target, size_t block_size, arith::Analyzer* analyzer) const final;
 
   Fragment GetLoopLayout() const { return loop_layout_; }
   For GetRoot() const { return root_; }
